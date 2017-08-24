@@ -95,6 +95,8 @@ Xcondden<-beta*sum(Sstar[pointer]) - np*logintegral
 neglogLik <- -((Sden+Xcondden+Ycondden)-Scondden)
 neglogLik
 
+diggleRatio <-  -((Sden+Ycondden)-Scondden)
+# diggleRatio
 # > Sden
 # [1] -63.9343
 # > Ycondden
@@ -114,3 +116,43 @@ neglogLik
 # [1] 74.45182
 # > logLik
 # [1] -19.78316
+
+Sstar <- geodata$data
+
+Sigman <- CMat%*%covMat%*%t(CMat)
+SigmanN <- CMat%*%covMat
+SigmaNn <- covMat%*%t(CMat)
+########################################################################
+# [S0] ##################################################################
+########################################################################
+Sden <- dmvnorm(Sstar[pointer], mean = rep(mean, n), sigma = Sigman, log = T)
+########################################################################
+# [Y|S,X] ##############################################################
+########################################################################
+meanCond <- Sstar[pointer]
+covMatCond <- diag(n)*tau.sq
+Ycondden <- dmvnorm(sampData$data, mean = meanCond, sigma = covMatCond, log = T)
+########################################################################
+# [S0|Y,X] ############################################################## THIS IS CURRENTLY S0|Y,X
+########################################################################
+meanCondS <- Sigman%*%solve(Sigman+covMatCond)%*%(sampData$data-mean)
+covMatCondS <- Sigman - Sigman%*%solve(Sigman+covMatCond)%*%Sigman
+Scondden <- dmvnorm(Sstar[pointer]-mean, mean = meanCondS, sigma = covMatCondS, log = T)
+########################################################################
+# [X|S] ################################################################
+########################################################################
+h=(max(xseq)-min(xseq))/l
+np<-n
+ng<-l^2
+area.cell<-h*h
+logintegral<-log(area.cell*sum(exp(beta*Sstar)))
+Xcondden<-beta*sum(Sstar[pointer]) - np*logintegral
+########################################################################
+# final ratio ##########################################################
+########################################################################
+neglogLik <- -((Sden+Xcondden+Ycondden)-Scondden)
+neglogLik
+
+
+diggleRatio <-  -((Sden+Ycondden)-Scondden)
+# diggleRatio
