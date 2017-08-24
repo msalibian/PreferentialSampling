@@ -133,7 +133,7 @@ meanCond <- Sstar[pointer]
 covMatCond <- diag(n)*tau.sq
 Ycondden <- dmvnorm(sampData$data, mean = meanCond, sigma = covMatCond, log = T)
 ########################################################################
-# [S0|Y,X] ############################################################## THIS IS CURRENTLY S0|Y,X
+# [S|Y,X] ##############################################################
 ########################################################################
 meanCondS <- Sigman%*%solve(Sigman+covMatCond)%*%(sampData$data-mean)
 covMatCondS <- Sigman - Sigman%*%solve(Sigman+covMatCond)%*%Sigman
