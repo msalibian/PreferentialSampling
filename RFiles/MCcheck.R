@@ -97,6 +97,15 @@ neglogLik
 
 diggleRatio <-  -((Sden+Ycondden)-Scondden)
 # diggleRatio
+########################################################################
+# [Y|X] ################################################################
+########################################################################
+# compare Y|X to diggle ratio
+YcondX <- dmvnorm(sampData$data-mean, mean = rep(0,n), sigma = (Sigman+covMatCond), log = T)
+
+YcondX+diggleRatio
+
+
 # > Sden
 # [1] -63.9343
 # > Ycondden
