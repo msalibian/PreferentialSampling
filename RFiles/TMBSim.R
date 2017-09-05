@@ -101,13 +101,29 @@ PrefSK$cov.pars[2]=exp(param[2])
 PrefSK$nugget=exp(param[4])^2
 predPref <- krige.conv(sampData, loc = gridFull, krige = PrefSK)
 # calculate TMB bias
-biasPref <-predPref$predict[locIndex]-geodata$data[locIndex]
 
 nonPrefParam <- c(standardMLE$beta, standardMLE$phi, standardMLE$sigmasq, standardMLE$tausq)
 prefParam <- c(param[1],exp(param[2]),exp(param[3])^2,exp(param[4])^2,param[5])
-# predict V2 (mode of laplace)
+########################################################################
+# predict V2 (mode of laplace) #########################################
+########################################################################
+# extract S posterior from TMB
 modePred <- obj$env$last.par.best[1:nrow(SGrid)]
-
+# plot prediction
 image.plot(Sseq,Sseq,matrix(modePred, nrow=length(Sseq), ncol=length(Sseq)),
+           xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
+points(sampData$coords, pch=19, cex=.5)
+# take best parameters
+param <- obj$env$last.par.best[(nrow(SGrid)+1):(nrow(SGrid)+5)]
+# simple kriging for parameters
+SKDat <- krige.control(obj.model = standardMLE, type.krige = "SK")
+PrefSK <- SKDat
+PrefSK$beta=param[1]
+PrefSK$cov.pars[1]=exp(param[3])^2
+PrefSK$cov.pars[2]=exp(param[2])
+PrefSK$nugget=exp(param[4])^2
+predPref <- krige.conv(sampData, loc = SGrid, krige = PrefSK)
+# plot kriging predictions
+image.plot(Sseq,Sseq,matrix(predPref$predict, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
