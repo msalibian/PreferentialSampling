@@ -105,3 +105,9 @@ biasPref <-predPref$predict[locIndex]-geodata$data[locIndex]
 
 nonPrefParam <- c(standardMLE$beta, standardMLE$phi, standardMLE$sigmasq, standardMLE$tausq)
 prefParam <- c(param[1],exp(param[2]),exp(param[3])^2,exp(param[4])^2,param[5])
+# predict V2 (mode of laplace)
+modePred <- obj$env$last.par.best[1:nrow(SGrid)]
+
+image.plot(Sseq,Sseq,matrix(modePred, nrow=length(Sseq), ncol=length(Sseq)),
+           xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
+points(sampData$coords, pch=19, cex=.5)
