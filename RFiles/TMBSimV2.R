@@ -1,6 +1,7 @@
 library(RandomFields)
 library(geoR)
 library(fields)
+library(prodlim)
 # load Template Model Builder
 library(TMB)
 # sample size
@@ -23,8 +24,8 @@ compile("TMBCPP.cpp")
 dyn.load(dynlib("TMBCPP"))
 
 # define grid as 100 by 100 on the unit square
-xseq=seq(0,1,length.out=100)
-yseq=seq(0,1,length.out=100)
+xseq=seq(0,1,length.out=91)
+yseq=seq(0,1,length.out=91)
 gridFull=expand.grid(xseq,yseq)
 # define covariance model for the field S
 model <- RMwhittle(nu=kappa, var=sigma.sq, scale=phi)
@@ -49,7 +50,7 @@ standardMLE <- likfit(sampData, coords = sampData$coords,
                       data = sampData$data, kappa=kappa, ini=c(0.5, 0.5))
 # defined discretisation for TMB
 # define grid to simulate Sj's
-l=30
+l=31
 Sseq <- seq(0,1,length.out=l)
 SGrid <- expand.grid(Sseq,Sseq)
 # find closest point in Sj's to data locations
@@ -130,9 +131,10 @@ image.plot(Sseq,Sseq,matrix(predPref$predict, nrow=length(Sseq), ncol=length(Sse
            xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
 # plot true surface at those points
-set.seed(k)
-rawDatSmall <- RFsimulate(model, x=as.matrix(SGrid))$variable1 + mean
+#rawDatSmall <- rawDat[seq(1, length(rawDat), 3)]
+# take the subset of the full grid for comparison with predictions from TMB
+matchedIndic <- row.match(SGrid,gridFull)
+rawDatSmall <- rawDat[matchedIndic]
 image.plot(Sseq,Sseq,matrix(rawDatSmall, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
-
