@@ -23,8 +23,8 @@ compile("TMBCPP.cpp")
 dyn.load(dynlib("TMBCPP"))
 
 # define grid as 100 by 100 on the unit square
-xseq=seq(0,1,length.out=35)
-yseq=seq(0,1,length.out=35)
+xseq=seq(0,1,length.out=100)
+yseq=seq(0,1,length.out=100)
 gridFull=expand.grid(xseq,yseq)
 # define covariance model for the field S
 model <- RMwhittle(nu=kappa, var=sigma.sq, scale=phi)
@@ -49,7 +49,7 @@ standardMLE <- likfit(sampData, coords = sampData$coords,
                       data = sampData$data, kappa=kappa, ini=c(0.5, 0.5))
 # defined discretisation for TMB
 # define grid to simulate Sj's
-l=40
+l=30
 Sseq <- seq(0,1,length.out=l)
 SGrid <- expand.grid(Sseq,Sseq)
 # find closest point in Sj's to data locations
