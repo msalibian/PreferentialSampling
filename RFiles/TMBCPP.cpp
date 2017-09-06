@@ -20,7 +20,9 @@ template<class Type>
 
   using namespace density;
   int i,j;
-  Type ans=0;  // ans will be the resulting likelihood
+  //Type ans=0;  // ans will be the resulting likelihood
+  parallel_accumulator<Type> ans(this);
+
   Type intSum1=0;
   // First chunk of likelihood
   // initialise covariance matrix and mean vector

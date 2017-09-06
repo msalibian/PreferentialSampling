@@ -22,7 +22,7 @@ mean=4
 # compile and load C++ file
 compile("TMBCPP.cpp")
 dyn.load(dynlib("TMBCPP"))
-
+openmp(4)
 # define grid as 100 by 100 on the unit square
 xseq=seq(0,1,length.out=91)
 yseq=seq(0,1,length.out=91)
@@ -144,6 +144,11 @@ postMSPE <- postBias^2
 
 krigBias <- rawDatSmall - predPref$predict
 krigMSPE <- krigBias^2
+
+boxplot(postBias)
+boxplot(krigBias)
+boxplot(postMSPE)
+boxplot(krigMSPE)
 
 mean(postBias)
 mean(krigBias)
