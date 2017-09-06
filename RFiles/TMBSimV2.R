@@ -138,3 +138,14 @@ rawDatSmall <- rawDat[matchedIndic]
 image.plot(Sseq,Sseq,matrix(rawDatSmall, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
+# compare real to pred surfaces
+postBias <- rawDatSmall - modePred
+postMSPE <- postBias^2
+
+krigBias <- rawDatSmall - predPref$predict
+krigMSPE <- krigBias^2
+
+mean(postBias)
+mean(krigBias)
+mean(postMSPE)
+mean(krigMSPE)
