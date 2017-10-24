@@ -1,16 +1,18 @@
+########################################################################
+# Thank you to an anonymous reviewer for INLA code  ####################
+# adapted in this document                          ####################
+########################################################################
 library(RandomFields)
 library(geoR)
 library(fields)
 library(prodlim)
-# load Template Model Builder
-library(TMB)
-# load INLA for mesh + sparse matrices
+# load INLA
 library(INLA)
 # sample size
 n=100
-###########################################
-# Set field parameters ####################
-###########################################
+########################################################################
+# Set field parameters #################################################
+########################################################################
 # choose preferential parameter (beta=0 is uniform random)
 beta=1.5
 # marginal variance of the field
@@ -23,9 +25,6 @@ nu=1
 phi=0.15
 # mean parameter (constant mean trend)
 mean=4
-# compile and load C++ file
-compile("TMBexample.cpp")
-dyn.load(dynlib("TMBexample"))
 # define grid as 91 by 91 on the unit square
 xseq=seq(0,1,length.out=91)
 yseq=seq(0,1,length.out=91)
@@ -44,7 +43,7 @@ sampData <- sample.geodata(geodata, size = n, prob = exp(beta * geodata$data))
 sampData$data <- sampData$data + rnorm(n, mean = 0, sd = sqrt(tau.sq))
 # plot the data
 image.plot(xseq,yseq,matrix(rawDat, nrow=length(xseq), ncol=length(yseq)),
-xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
+           xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
 # estimate parameters ignoring any preferential effects
 standardMLE <- likfit(sampData, coords = sampData$coords,
@@ -54,52 +53,54 @@ m=31
 Sseq <- seq(0,1,length.out=m)
 SGrid <- expand.grid(Sseq,Sseq)
 predGrid <- expand.grid(Sseq,Sseq)
+########################################################################
+# Use INLA to estimate corrected parameters ############################
+########################################################################
+y.pref = rep(NA,length(Sseq)*length(Sseq))
 # find closest point in Sj's to data locations
 pointer1 <- vector(length=n)
 for(i in 1:n){
   nearestPoint <- which.min((SGrid[,1] - sampData$coords[i,1])^2 + (SGrid[,2] - sampData$coords[i,2])^2)
-  pointer1[i] <- nearestPoint - 1
+  pointer1[i] <- nearestPoint
 }
-# create mesh using INLA. Currently using lattice
+pp.pref <- pointer1
+y.pref[pp.pref] = sampData$data
+# Create INLA mesh
 mesh <- inla.mesh.create(loc = as.matrix(predGrid),
-                         extend = T, refine = T)
+                         extend = TRUE, refine = TRUE)
 plot(mesh, asp=1)
-points(predGrid, col='red')
-#  Locate the input locations in the output mesh
+# Locate the input locations in the output mesh
 ii0 <- mesh$idx$loc
-# create data frame for TMB -  note indicies using C++ indexing (starts at 0 not 1)
-data <- list(Y1=sampData$coords[,1], Y2=sampData$coords[,2], Y=sampData$data,
-             pointer=pointer1, meshidxloc=mesh$idx$loc-1)
-# add elements for sparse precision matrix
-data$spde <- (inla.spde2.matern(mesh, alpha=2)$param.inla)[c("M0","M1","M2")]
-# Number of points in mesh (including supporting points)
-n_s = nrow(data$spde$M0)
-# vector of 1's for TMB
-data$Ind <- rep(1, n_s)
+# Create INLA Matern SPDE model
+spde <- inla.spde2.pcmatern(mesh = mesh, constr = FALSE,
+                            prior.range = c(1/100, 0.01),
+                            prior.sigma = c(5, 0.01))
+# Prepare the data sets for INLA
+n2 = length(Sseq)^2
+ii <- c(ii0, rep(NA, n2))
+jj <- c(rep(NA, n2), ii0)
+alpha = c(rep(0,n2), rep(1,n2))
+mu = c(rep(1,n2), rep(0,n2))
+points.pref = rep(0,n2)
+points.pref[pp.pref] = 1
+# Preferential sampling
+yy.pref = matrix(NA,2*n2,2)
+yy.pref[1:n2,1] = y.pref
+yy.pref[n2+1:n2,2] = points.pref
+data.pref.pref = list(yy=yy.pref,mu=mu,ii=ii,jj=jj,alpha=alpha)
+# Create data for INLA fitting
+data.pref.pref_spde <- list(yy = yy.pref, mu = mu, ii = ii, jj = jj, alpha = alpha)
+formula <- yy ~ alpha + mu + f(ii, model = spde) +
+  f(jj, copy = "ii", fixed = FALSE, param = c(0, 0.1)) -1
+# Fit model
+pref.model <-
+  inla(formula, family = c("gaussian", "poisson"),
+       control.family = list(list(initial = log(1/0.1), fixed = FALSE), list()),
+       control.inla = list(strategy = "gaussian", int.strategy = "eb"),
+       control.predictor = list(compute = TRUE),
+       data = data.pref.pref_spde, verbose = TRUE)
 ########################################################################
-# Use TMB to estimate corrected parameters #############################
-########################################################################
-# parameters for TMB
-parameters <- list(
-  S=rep(0, n_s),
-  mu=standardMLE$beta,
-  log_phi=log(standardMLE$phi),
-  log_kappa=log(sqrt(1/(4*pi*(standardMLE$phi^-2)*standardMLE$sigmasq))),
-  log_tau=log(sqrt(standardMLE$tausq)),
-  beta=beta
-)
-# initial paramaters
-initPar <- c(standardMLE$beta, log(standardMLE$phi), log(sqrt(1/(4*pi*(standardMLE$phi^-2)*standardMLE$sigmasq))),
-             log(sqrt(standardMLE$tausq+0.0001)), beta)
-# construct TMB function and let it integrate out latent field S
-obj <- MakeADFun(data,parameters,random=c("S"),DLL="TMBexample", method = "nlminb", hessian=FALSE, silent=FALSE)
-# use nlminb to maximise likelihood
-opt <- nlminb(initPar,obj$fn,obj$gr)
-report_spde <- obj$report()
-# obtained preferentially corrected parameters
-param <- c(opt$par[1], exp(opt$par[2]), (report_spde$sigma)^2, (exp(opt$par[4])^2), opt$par[5])
-########################################################################
-# Compare TMB and non-preferential predictions #########################
+# Compare INLA and non-preferential predictions ########################
 ########################################################################
 ########################################################################
 # Non-preferential predictions through kriging #########################
@@ -107,11 +108,16 @@ param <- c(opt$par[1], exp(opt$par[2]), (report_spde$sigma)^2, (exp(opt$par[4])^
 SKDat <- krige.control(obj.model = standardMLE, type.krige = "SK")
 nonPredPref <- krige.conv(sampData, loc = predGrid, krige = SKDat, output=list(signal=T))
 ########################################################################
-# Preferential predictions through TMB #################################
+# Preferential predictions through INLA ################################
 ########################################################################
-# extract S posterior from TMB
-modePredPref <- obj$env$last.par.best[1:nrow(SGrid)]
-# match indicies from TMB grid to grid used to generate data
+# Preferential parameters taken from INLA results
+prefParam <- c(pref.model$summary.fixed[2,"mean"],
+                inla.emarginal(function(x) x / sqrt(8*nu),
+                               pref.model$marginals.hyperpar[[2]]),
+                inla.emarginal(function(x) x^2, pref.model$marginals.hyperpar[[3]]),
+                inla.emarginal(function(x) 1/x, pref.model$marginals.hyperpar[[1]]),
+                pref.model$summary.hyperpar[4,"mean"])
+# match indicies from INLA grid to grid used to generate data
 matchedIndic <- row.match(predGrid,gridFull)
 # get true field on TMB grid
 rawDatSmall <- rawDat[matchedIndic]
@@ -119,30 +125,24 @@ rawDatSmall <- rawDat[matchedIndic]
 IGN <- function(pred, act, var) {
   ((pred - act)^2) / var + log(var)
 }
-# obtain standard errors
-sdre <- sdreport(obj)
-#
-summary(sdre, "fixed")
-# prediction variances
-predVar <- (summary(sdre, "random")[1:nrow(SGrid),2])^2
-
-
+# INLA predictions and prediction variances
+predPrefINLA <-  list(predict=pref.model$summary.fitted.values[1:n2, "mean"],
+                        variance=pref.model$summary.fitted.values[1:n2, "sd"]^2)
 # Compare true field with preferential and non-preferential predictions
-range1=c(min(c(rawDatSmall,modePredPref,nonPredPref$predict)), max(c(rawDatSmall,modePredPref, nonPredPref$predict)))
+range1=c(min(c(rawDatSmall,predPrefINLA$predict,nonPredPref$predict)), max(c(rawDatSmall,predPrefINLA$variance, nonPredPref$predict)))
 # TRUE
 image.plot(Sseq,Sseq,matrix(rawDatSmall, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", main="True", zlim=range1, col=rev(heat.colors(20)))
 points(sampData$coords, pch=19, cex=.5)
 
-range2=c(min(c(predVar, nonPredPref$krige.var)), max(c(predVar, nonPredPref$krige.var)))
-
+range2=c(min(c(predPrefINLA$variance, nonPredPref$krige.var)), max(c(predPrefINLA$variance, nonPredPref$krige.var)))
 par(mfrow=c(2,2))
 # Preferential predictions and variances
-image.plot(Sseq,Sseq,matrix(modePredPref, nrow=length(Sseq), ncol=length(Sseq)),
+image.plot(Sseq,Sseq,matrix(predPrefINLA$predict, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", main="Pref Prediction", zlim=range1, col=rev(heat.colors(20)))
 points(sampData$coords, pch=19, cex=.5)
 
-image.plot(Sseq,Sseq,matrix(predVar, nrow=length(Sseq), ncol=length(Sseq)),
+image.plot(Sseq,Sseq,matrix(predPrefINLA$variance, nrow=length(Sseq), ncol=length(Sseq)),
            xlab="Longitude", ylab="Latitude", main="Pref Variance", zlim=range2, col=rev(heat.colors(20)))
 points(sampData$coords, pch=19, cex=.5)
 # Non-Preferential prediction and variances
@@ -156,7 +156,7 @@ points(sampData$coords, pch=19, cex=.5)
 ########################################################################
 # Compare Ignorance Scores #############################################
 ########################################################################
-IgnScorePref <- IGN(modePredPref, rawDatSmall, predVar)
+IgnScorePref <- IGN(predPrefINLA$predict, rawDatSmall, predPrefINLA$variance)
 IgnScoreNonPref <- IGN(nonPredPref$predict, rawDatSmall, nonPredPref$krige.var)
 # Compare Mean Ignorance Score (MIGN)
 mean(IgnScorePref)
