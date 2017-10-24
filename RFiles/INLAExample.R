@@ -48,7 +48,7 @@ points(sampData$coords, pch=19, cex=.5)
 # estimate parameters ignoring any preferential effects
 standardMLE <- likfit(sampData, coords = sampData$coords,
                       data = sampData$data, kappa=nu, ini=c(0.5, 0.5))
-# defined discretisation for TMB
+# defined discretisation for INLA
 m=31
 Sseq <- seq(0,1,length.out=m)
 SGrid <- expand.grid(Sseq,Sseq)
@@ -119,7 +119,7 @@ prefParam <- c(pref.model$summary.fixed[2,"mean"],
                 pref.model$summary.hyperpar[4,"mean"])
 # match indicies from INLA grid to grid used to generate data
 matchedIndic <- row.match(predGrid,gridFull)
-# get true field on TMB grid
+# get true field on INLA grid
 rawDatSmall <- rawDat[matchedIndic]
 # Ignorance Score Function (see paper)
 IGN <- function(pred, act, var) {
