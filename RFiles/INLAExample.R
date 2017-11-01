@@ -51,7 +51,6 @@ standardMLE <- likfit(sampData, coords = sampData$coords,
 # defined discretisation for INLA
 m=31
 Sseq <- seq(0,1,length.out=m)
-SGrid <- expand.grid(Sseq,Sseq)
 predGrid <- expand.grid(Sseq,Sseq)
 ########################################################################
 # Use INLA to estimate corrected parameters ############################
@@ -60,7 +59,7 @@ y.pref = rep(NA,length(Sseq)*length(Sseq))
 # find closest point in Sj's to data locations
 pointer1 <- vector(length=n)
 for(i in 1:n){
-  nearestPoint <- which.min((SGrid[,1] - sampData$coords[i,1])^2 + (SGrid[,2] - sampData$coords[i,2])^2)
+  nearestPoint <- which.min((predGrid[,1] - sampData$coords[i,1])^2 + (predGrid[,2] - sampData$coords[i,2])^2)
   pointer1[i] <- nearestPoint
 }
 pp.pref <- pointer1

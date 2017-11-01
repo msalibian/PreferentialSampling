@@ -52,12 +52,11 @@ standardMLE <- likfit(sampData, coords = sampData$coords,
 # defined discretisation for TMB
 m=31
 Sseq <- seq(0,1,length.out=m)
-SGrid <- expand.grid(Sseq,Sseq)
 predGrid <- expand.grid(Sseq,Sseq)
 # find closest point in Sj's to data locations
 pointer1 <- vector(length=n)
 for(i in 1:n){
-  nearestPoint <- which.min((SGrid[,1] - sampData$coords[i,1])^2 + (SGrid[,2] - sampData$coords[i,2])^2)
+  nearestPoint <- which.min((predGrid[,1] - sampData$coords[i,1])^2 + (predGrid[,2] - sampData$coords[i,2])^2)
   pointer1[i] <- nearestPoint - 1
 }
 # create mesh using INLA. Currently using lattice
@@ -110,7 +109,7 @@ nonPredPref <- krige.conv(sampData, loc = predGrid, krige = SKDat, output=list(s
 # Preferential predictions through TMB #################################
 ########################################################################
 # extract S posterior from TMB
-modePredPref <- obj$env$last.par.best[1:nrow(SGrid)]
+modePredPref <- obj$env$last.par.best[1:nrow(predGrid)]
 # match indicies from TMB grid to grid used to generate data
 matchedIndic <- row.match(predGrid,gridFull)
 # get true field on TMB grid
@@ -124,7 +123,7 @@ sdre <- sdreport(obj)
 #
 summary(sdre, "fixed")
 # prediction variances
-predVar <- (summary(sdre, "random")[1:nrow(SGrid),2])^2
+predVar <- (summary(sdre, "random")[1:nrow(predGrid),2])^2
 
 
 # Compare true field with preferential and non-preferential predictions
