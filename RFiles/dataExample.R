@@ -1,11 +1,12 @@
+# load required librarys
 library(RandomFields)
 library(geoR)
 library(fields)
-# sample size
+# choose sample size
 n=100
-###########################################
-# Set field parameters ####################
-###########################################
+######################################################################################
+# Set field parameters ###############################################################
+######################################################################################
 # choose preferential parameter (beta=0 is uniform random)
 beta=1.5
 # marginal variance of the field
@@ -25,7 +26,7 @@ gridFull=expand.grid(xseq,yseq)
 # define covariance model for the field S
 model <- RMwhittle(nu=nu, var=sigma.sq, scale=phi)
 # generate the raw data for S
-set.seed(2)
+set.seed(999)
 rawDat <- RFsimulate(model, x=as.matrix(gridFull), exactness=TRUE)$variable1 + mean
 # combine coordinates X with corresponding values for S
 obj <- cbind(cbind(gridFull[,1], gridFull[,2]), rawDat)

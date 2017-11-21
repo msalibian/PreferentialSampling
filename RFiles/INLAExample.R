@@ -48,24 +48,25 @@ points(sampData$coords, pch=19, cex=.5)
 # estimate parameters ignoring any preferential effects
 standardMLE <- likfit(sampData, coords = sampData$coords,
                       data = sampData$data, kappa=nu, ini=c(0.5, 0.5))
-# defined discretisation for INLA
+# defined discretisation for INLA predictions/[X|S]
 m=31
 Sseq <- seq(0,1,length.out=m)
+# prediction grid (lattice)
 predGrid <- expand.grid(Sseq,Sseq)
+colnames(predGrid) <- c("V1", "V2")
+# full grid (including sampling locations)
+INLAgrid <- unique(rbind(predGrid, sampData$coords))
 ########################################################################
 # Use INLA to estimate corrected parameters ############################
 ########################################################################
-y.pref = rep(NA,length(Sseq)*length(Sseq))
-# find closest point in Sj's to data locations
-pointer1 <- vector(length=n)
-for(i in 1:n){
-  nearestPoint <- which.min((predGrid[,1] - sampData$coords[i,1])^2 + (predGrid[,2] - sampData$coords[i,2])^2)
-  pointer1[i] <- nearestPoint
-}
+y.pref = rep(NA, nrow(INLAgrid))
+# find sampling locations in full grid
+pointer1 <- row.match(data.frame(sampData$coords), INLAgrid)
+
 pp.pref <- pointer1
 y.pref[pp.pref] = sampData$data
 # Create INLA mesh
-mesh <- inla.mesh.create(loc = as.matrix(predGrid),
+mesh <- inla.mesh.create(loc = as.matrix(INLAgrid),
                          extend = TRUE, refine = TRUE)
 plot(mesh, asp=1)
 # Locate the input locations in the output mesh
@@ -75,7 +76,7 @@ spde <- inla.spde2.pcmatern(mesh = mesh, constr = FALSE,
                             prior.range = c(1/100, 0.01),
                             prior.sigma = c(5, 0.01))
 # Prepare the data sets for INLA
-n2 = length(Sseq)^2
+n2 = nrow(INLAgrid)
 ii <- c(ii0, rep(NA, n2))
 jj <- c(rep(NA, n2), ii0)
 alpha = c(rep(0,n2), rep(1,n2))
@@ -111,22 +112,18 @@ nonPredPref <- krige.conv(sampData, loc = predGrid, krige = SKDat, output=list(s
 ########################################################################
 # Preferential parameters taken from INLA results
 prefParam <- c(pref.model$summary.fixed[2,"mean"],
-                inla.emarginal(function(x) x / sqrt(8*nu),
-                               pref.model$marginals.hyperpar[[2]]),
-                inla.emarginal(function(x) x^2, pref.model$marginals.hyperpar[[3]]),
-                inla.emarginal(function(x) 1/x, pref.model$marginals.hyperpar[[1]]),
-                pref.model$summary.hyperpar[4,"mean"])
+               inla.emarginal(function(x) x / sqrt(8*nu),
+                              pref.model$marginals.hyperpar[[2]]),
+               inla.emarginal(function(x) x^2, pref.model$marginals.hyperpar[[3]]),
+               inla.emarginal(function(x) 1/x, pref.model$marginals.hyperpar[[1]]),
+               pref.model$summary.hyperpar[4,"mean"])
 # match indicies from INLA grid to grid used to generate data
 matchedIndic <- row.match(predGrid,gridFull)
 # get true field on INLA grid
 rawDatSmall <- rawDat[matchedIndic]
-# Ignorance Score Function (see paper)
-IGN <- function(pred, act, var) {
-  ((pred - act)^2) / var + log(var)
-}
 # INLA predictions and prediction variances
-predPrefINLA <-  list(predict=pref.model$summary.fitted.values[1:n2, "mean"],
-                        variance=pref.model$summary.fitted.values[1:n2, "sd"]^2)
+predPrefINLA <-  list(predict=pref.model$summary.fitted.values[1:nrow(predGrid), "mean"],
+                      variance=pref.model$summary.fitted.values[1:nrow(predGrid), "sd"]^2)
 # Compare true field with preferential and non-preferential predictions
 range1=c(min(c(rawDatSmall,predPrefINLA$predict,nonPredPref$predict)), max(c(rawDatSmall,predPrefINLA$variance, nonPredPref$predict)))
 # TRUE
@@ -155,6 +152,10 @@ points(sampData$coords, pch=19, cex=.5)
 ########################################################################
 # Compare Ignorance Scores #############################################
 ########################################################################
+# Ignorance Score Function (see paper)
+IGN <- function(pred, act, var) {
+  ((pred - act)^2) / var + log(var)
+}
 IgnScorePref <- IGN(predPrefINLA$predict, rawDatSmall, predPrefINLA$variance)
 IgnScoreNonPref <- IGN(nonPredPref$predict, rawDatSmall, nonPredPref$krige.var)
 # Compare Mean Ignorance Score (MIGN)

@@ -44,37 +44,38 @@ sampData <- sample.geodata(geodata, size = n, prob = exp(beta * geodata$data))
 sampData$data <- sampData$data + rnorm(n, mean = 0, sd = sqrt(tau.sq))
 # plot the data
 image.plot(xseq,yseq,matrix(rawDat, nrow=length(xseq), ncol=length(yseq)),
-xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
+           xlab="Longitude", ylab="Latitude", col=rev(heat.colors(10)))
 points(sampData$coords, pch=19, cex=.5)
 # estimate parameters ignoring any preferential effects
 standardMLE <- likfit(sampData, coords = sampData$coords,
                       data = sampData$data, kappa=nu, ini=c(0.5, 0.5))
-# defined discretisation for TMB
+# define lattice discretisation for TMB
 m=31
 Sseq <- seq(0,1,length.out=m)
+# prediction grid (ie/ lattice)
 predGrid <- expand.grid(Sseq,Sseq)
-# find closest point in Sj's to data locations
-pointer1 <- vector(length=n)
-for(i in 1:n){
-  nearestPoint <- which.min((predGrid[,1] - sampData$coords[i,1])^2 + (predGrid[,2] - sampData$coords[i,2])^2)
-  pointer1[i] <- nearestPoint - 1
-}
-# create mesh using INLA. Currently using lattice
-mesh <- inla.mesh.create(loc = as.matrix(predGrid),
+colnames(predGrid) <- c("V1", "V2")
+# create larger grid including sampled locations
+TMBGrid <- unique(rbind(predGrid, sampData$coords))
+# pointer for sampling locations (using C++ indexing)
+pointer <- row.match(data.frame(sampData$coords), TMBGrid) -1
+## Simple default 15% extension, and refinement based only
+## on a minimum angle criterion
+mesh <- inla.mesh.create(loc = as.matrix(TMBGrid),
                          extend = T, refine = T)
 plot(mesh, asp=1)
-points(predGrid, col='red')
-#  Locate the input locations in the output mesh
+points(sampData$coords, col='red')
+## Locate the input locations in the output mesh
 ii0 <- mesh$idx$loc
 # create data frame for TMB -  note indicies using C++ indexing (starts at 0 not 1)
 data <- list(Y1=sampData$coords[,1], Y2=sampData$coords[,2], Y=sampData$data,
-             pointer=pointer1, meshidxloc=mesh$idx$loc-1)
+             pointer=pointer, meshidxloc=mesh$idx$loc-1)
 # add elements for sparse precision matrix
 data$spde <- (inla.spde2.matern(mesh, alpha=2)$param.inla)[c("M0","M1","M2")]
+# indicator (C++ indexing) for lattice points in grid
+data$matchedIndic <- row.match(predGrid, TMBGrid) - 1
 # Number of points in mesh (including supporting points)
 n_s = nrow(data$spde$M0)
-# vector of 1's for TMB
-data$Ind <- rep(1, n_s)
 ########################################################################
 # Use TMB to estimate corrected parameters #############################
 ########################################################################
@@ -114,18 +115,12 @@ modePredPref <- obj$env$last.par.best[1:nrow(predGrid)]
 matchedIndic <- row.match(predGrid,gridFull)
 # get true field on TMB grid
 rawDatSmall <- rawDat[matchedIndic]
-# Ignorance Score Function (see paper)
-IGN <- function(pred, act, var) {
-  ((pred - act)^2) / var + log(var)
-}
 # obtain standard errors
 sdre <- sdreport(obj)
 #
 summary(sdre, "fixed")
 # prediction variances
 predVar <- (summary(sdre, "random")[1:nrow(predGrid),2])^2
-
-
 # Compare true field with preferential and non-preferential predictions
 range1=c(min(c(rawDatSmall,modePredPref,nonPredPref$predict)), max(c(rawDatSmall,modePredPref, nonPredPref$predict)))
 # TRUE
@@ -155,6 +150,10 @@ points(sampData$coords, pch=19, cex=.5)
 ########################################################################
 # Compare Ignorance Scores #############################################
 ########################################################################
+# Ignorance Score Function (see paper)
+IGN <- function(pred, act, var) {
+  ((pred - act)^2) / var + log(var)
+}
 IgnScorePref <- IGN(modePredPref, rawDatSmall, predVar)
 IgnScoreNonPref <- IGN(nonPredPref$predict, rawDatSmall, nonPredPref$krige.var)
 # Compare Mean Ignorance Score (MIGN)
