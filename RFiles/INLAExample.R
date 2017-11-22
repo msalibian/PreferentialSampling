@@ -73,8 +73,8 @@ plot(mesh, asp=1)
 ii0 <- mesh$idx$loc
 # Create INLA Matern SPDE model
 spde <- inla.spde2.pcmatern(mesh = mesh, constr = FALSE,
-                            prior.range = c(1/100, 0.01),
-                            prior.sigma = c(5, 0.01))
+                            prior.range = c(.15, 0.01),
+                            prior.sigma = c(1.5, 0.01))
 # Prepare the data sets for INLA
 n2 = nrow(INLAgrid)
 ii <- c(ii0, rep(NA, n2))
