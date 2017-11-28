@@ -62,7 +62,6 @@ INLAgrid <- unique(rbind(predGrid, sampData$coords))
 y.pref = rep(NA, nrow(INLAgrid))
 # find sampling locations in full grid
 pointer1 <- row.match(data.frame(sampData$coords), INLAgrid)
-
 pp.pref <- pointer1
 y.pref[pp.pref] = sampData$data
 # Create INLA mesh
@@ -76,17 +75,17 @@ spde <- inla.spde2.pcmatern(mesh = mesh, constr = FALSE,
                             prior.range = c(.15, 0.01),
                             prior.sigma = c(1.5, 0.01))
 # Prepare the data sets for INLA
-n2 = nrow(INLAgrid)
-ii <- c(ii0, rep(NA, n2))
-jj <- c(rep(NA, n2), ii0)
-alpha = c(rep(0,n2), rep(1,n2))
-mu = c(rep(1,n2), rep(0,n2))
-points.pref = rep(0,n2)
+nGrid = nrow(INLAgrid)
+ii <- c(ii0, rep(NA, nGrid))
+jj <- c(rep(NA, nGrid), ii0)
+alpha = c(rep(0,nGrid), rep(1,nGrid))
+mu = c(rep(1,nGrid), rep(0,nGrid))
+points.pref = rep(0,nGrid)
 points.pref[pp.pref] = 1
 # Preferential sampling
-yy.pref = matrix(NA,2*n2,2)
-yy.pref[1:n2,1] = y.pref
-yy.pref[n2+1:n2,2] = points.pref
+yy.pref = matrix(NA,2*nGrid,2)
+yy.pref[1:nGrid,1] = y.pref
+yy.pref[nGrid+1:nGrid,2] = points.pref
 data.pref.pref = list(yy=yy.pref,mu=mu,ii=ii,jj=jj,alpha=alpha)
 # Create data for INLA fitting
 data.pref.pref_spde <- list(yy = yy.pref, mu = mu, ii = ii, jj = jj, alpha = alpha)
