@@ -20,8 +20,8 @@ publicly available [here](http://www.r-inla.org/examples/case-studies/diggle09/s
 
 What is available in this repository is:
 
-* A script to generate synthetic data following the Poisson preferential sampling model
-* A script to obtain parameter estimates using INLA in R
-* A script to obtain parameter estimates using TMB in R
+* A script to generate synthetic data following the Poisson preferential sampling model [here](RFiles/dataExample.R)
+* A script to obtain parameter estimates using INLA in R [here](RFiles/INLAExample.R)
+* A script to obtain parameter estimates using TMB in R [here](RFiles/TMBExample.R) and [here](RFiles/TMBExample.cpp)
 
 
