@@ -1,12 +1,12 @@
-Inference under preferential sampling
+Geostatistical inference under preferential sampling
 ================
 Daniel Dinsdale & Matias Salibian
-2017-11-29
+2018-03-28
 
 Geostatistical inference under preferential sampling
 ----------------------------------------------------
 
-This repository contains `R` code illustrating the computations in *Dinsdale, D. and Salibian-Barrera, M. (2017) A note on geostatistical inference under preferential sampling (submitted)*. We use [TMB](https://github.com/kaskr/adcomp/wiki) and [INLA](http://www.r-inla.org/). For the latter we adapted the scripts publicly available [here](http://www.r-inla.org/examples/case-studies/diggle09/simulation1).
+This repository contains `R` code illustrating the computations in *Dinsdale, D. and Salibian-Barrera, M. Methods for preferential sampling in geostatistics.* To appear in the *Journal of the Royal Statistical Society Series C*. We use [TMB](https://github.com/kaskr/adcomp/wiki) and [INLA](http://www.r-inla.org/). For the latter we adapted the scripts publicly available [here](http://www.r-inla.org/examples/case-studies/diggle09/simulation1).
 
 What is available in this repository is:
 

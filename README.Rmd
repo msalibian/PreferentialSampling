@@ -1,5 +1,5 @@
 ---
-title: "Inference under preferential sampling"
+title: "Geostatistical inference under preferential sampling"
 author: "Daniel Dinsdale & Matias Salibian"
 date: "`r format(Sys.Date())`"
 output: github_document
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Geostatistical inference under preferential sampling
 
 This repository contains `R` code illustrating the 
-computations in *Dinsdale, D. and Salibian-Barrera, M. (2017) A note on geostatistical inference under preferential sampling (submitted)*. We use 
+computations in *Dinsdale, D. and Salibian-Barrera, M. Methods for preferential sampling in geostatistics.* To appear in the *Journal of the Royal Statistical Society Series C*. We use 
 [TMB](https://github.com/kaskr/adcomp/wiki) and 
 [INLA](http://www.r-inla.org/). For the latter we adapted the scripts 
 publicly available [here](http://www.r-inla.org/examples/case-studies/diggle09/simulation1). 
