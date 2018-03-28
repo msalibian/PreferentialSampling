@@ -24,8 +24,8 @@ phi=0.15
 # mean parameter (constant mean trend)
 mean=4
 # compile and load C++ file
-compile("TMBexample.cpp")
-dyn.load(dynlib("TMBexample"))
+compile("TMBExample.cpp")
+dyn.load(dynlib("TMBExample"))
 # define grid as 91 by 91 on the unit square
 xseq=seq(0,1,length.out=91)
 yseq=seq(0,1,length.out=91)
@@ -92,7 +92,7 @@ parameters <- list(
 initPar <- c(standardMLE$beta, log(standardMLE$phi), log(sqrt(1/(4*pi*(standardMLE$phi^-2)*standardMLE$sigmasq))),
              log(sqrt(standardMLE$tausq+0.0001)), beta)
 # construct TMB function and let it integrate out latent field S
-obj <- MakeADFun(data,parameters,random=c("S"),DLL="TMBexample", method = "nlminb", hessian=FALSE, silent=FALSE)
+obj <- MakeADFun(data,parameters,random=c("S"),DLL="TMBExample", method = "nlminb", hessian=FALSE, silent=FALSE)
 # use nlminb to maximise likelihood
 opt <- nlminb(initPar,obj$fn,obj$gr)
 report_spde <- obj$report()
