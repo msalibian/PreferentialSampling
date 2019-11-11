@@ -1,22 +1,22 @@
 #include <TMB.hpp>
 #include<cmath>
 
-  template<class Type>
-  Type objective_function<Type>::operator() ()
+template<class Type>
+Type objective_function<Type>::operator() ()
 {
   using namespace R_inla;
   using namespace density;
   using namespace Eigen;
-
+  
   DATA_VECTOR(Y1);        // Sample location longitudes. Must have same length as Y
   DATA_VECTOR(Y2);        // Sample location latitudes. Must have same length as Y
   DATA_VECTOR(Y);         // Observations
   DATA_IVECTOR(pointer);   // points to elements of S which are sampling locations
   DATA_IVECTOR(meshidxloc); // points to elements of INLA mesh
   DATA_IVECTOR(matchedIndic); // points to elements of S lattice
-
+  
   PARAMETER_VECTOR(S); // latent field to be integrated out
-
+  
   DATA_STRUCT(spde,spde_t);
   // Parameters
   PARAMETER(mu);
@@ -30,10 +30,10 @@
   Type tau = exp(log_tau);
   // conversion for marginal variance sigma
   Type sigma = 1 / sqrt(4 * M_PI * exp(-2*log_phi) * exp(2*log_kappa));
-
+  
   int i;
   Type ans=0;  // ans will be the resulting likelihood.
-
+  
   Type intSum1=0;
   // First chunk of likelihood
   // initialise precision matrix and mean vector
@@ -65,3 +65,4 @@
   REPORT(sigma);
   return ans;
 }
+

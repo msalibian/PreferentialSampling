@@ -56,7 +56,7 @@ Sseq <- seq(0,1,length.out=m)
 predGrid <- expand.grid(Sseq,Sseq)
 colnames(predGrid) <- c("V1", "V2")
 # create larger grid including sampled locations
-TMBGrid <- unique(rbind(predGrid, sampData$coords))
+TMBGrid <- rbind(sampData$coords, predGrid)
 # pointer for sampling locations (using C++ indexing)
 pointer <- row.match(data.frame(sampData$coords), TMBGrid) -1
 ## Simple default 15% extension, and refinement based only
@@ -90,7 +90,7 @@ parameters <- list(
 )
 # initial paramaters
 initPar <- c(standardMLE$beta, log(standardMLE$phi), log(sqrt(1/(4*pi*(standardMLE$phi^-2)*standardMLE$sigmasq))),
-             log(sqrt(standardMLE$tausq+0.0001)), beta)
+             log(sqrt(standardMLE$tausq+0.0001)), 0)
 # construct TMB function and let it integrate out latent field S
 obj <- MakeADFun(data,parameters,random=c("S"),DLL="TMBExample", method = "nlminb", hessian=FALSE, silent=FALSE)
 # use nlminb to maximise likelihood
@@ -110,7 +110,7 @@ nonPredPref <- krige.conv(sampData, loc = predGrid, krige = SKDat, output=list(s
 # Preferential predictions through TMB #################################
 ########################################################################
 # extract S posterior from TMB
-modePredPref <- obj$env$last.par.best[1:nrow(predGrid)]
+modePredPref <- obj$env$last.par.best[ii0[1+n:(nrow(predGrid)+n-1)]]
 # match indicies from TMB grid to grid used to generate data
 matchedIndic <- row.match(predGrid,gridFull)
 # get true field on TMB grid
@@ -120,7 +120,7 @@ sdre <- sdreport(obj)
 #
 summary(sdre, "fixed")
 # prediction variances
-predVar <- (summary(sdre, "random")[1:nrow(predGrid),2])^2
+predVar <- (summary(sdre, "random")[ii0[1+n:(nrow(predGrid)+n-1)],2])^2
 # Compare true field with preferential and non-preferential predictions
 range1=c(min(c(rawDatSmall,modePredPref,nonPredPref$predict)), max(c(rawDatSmall,modePredPref, nonPredPref$predict)))
 # TRUE
